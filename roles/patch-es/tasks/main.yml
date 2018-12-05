@@ -1,0 +1,9 @@
+---
+- name: Add ElasticSearch vm.max_map_count config file
+  become: yes
+  copy:
+    src: 99-elasticsearch.conf
+    dest: /etc/sysctl.d/99-elasticsearch.conf
+- name: Set ElasitcSearch mv.max_map_count
+  become: yes
+  command: sysctl vm.max_map_count=262144

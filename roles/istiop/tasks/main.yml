@@ -1,0 +1,33 @@
+---
+- name: Copy master config patch file
+  become: yes
+  copy:
+    src: master-config.patch
+    dest: /etc/origin/master/master-config.patch
+
+- name: Patch master configs
+  become: yes
+  shell: |
+    cp -p /etc/origin/master/master-config.yaml /etc/origin/master/master-config.yaml.prepatch
+    oc ex config patch /etc/origin/master/master-config.yaml.prepatch -p "$(cat /etc/origin/master/master-config.patch)" > /etc/origin/master/master-config.yaml
+    /usr/local/bin/master-restart api && /usr/local/bin/master-restart controllers
+    sleep 5
+
+- name: Copy Istio Operator template
+  copy:
+    src: istio_product_operator_template.yaml
+    dest: /tmp/istio_product_operator_template.yaml
+
+- name: Create Istio Operator project
+  command: /usr/bin/oc new-project istio-operator
+
+- name: Deploy Istio Operator
+  command: /usr/bin/oc new-app -f /tmp/istio_product_operator_template.yaml --param=OPENSHIFT_ISTIO_MASTER_PUBLIC_URL={{master_public_url}}
+
+- name: Copy Istio CRD 
+  copy:
+    src: istio-installation-crd.yaml
+    dest: /tmp/istio-installation-crd.yaml
+
+- name: Deploy Istio CRD
+  command: /usr/bin/oc create -f /tmp/istio-installation-crd.yaml -n istio-operator
